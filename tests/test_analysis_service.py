@@ -23,3 +23,22 @@ def test_analysis_returns_field_path() -> None:
     email = next(item for item in findings if item.detected_type == "EMAIL")
     assert email.field_path == "data[0].contact"
     assert email.value == "qa@example.com"
+    assert email.displayed_value == "qa***@example.com"
+    assert email.masked is False
+
+
+def test_security_findings_follow_mode_and_rule() -> None:
+    record = ApiRecord(
+        timestamp=datetime.now(),
+        method="GET",
+        url="https://example.test",
+        status=200,
+        elapsed_ms=1,
+        response_headers={},
+        response_body={"address": "192.168.0.10"},
+        response_size=10,
+    )
+    service = AnalysisService(JsonLeafParser(), DetectorRegistry.default())
+    assert not service.analyze(record)
+    service.settings.qa_mode = "SECURITY"
+    assert any(item.detected_type == "IP_ADDRESS" for item in service.analyze(record))

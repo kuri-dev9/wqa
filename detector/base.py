@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 class Detection:
     detected_type: str
     value: str
+    masked: bool
 
 
 class Detector(ABC):
@@ -21,6 +22,10 @@ class Detector(ABC):
     def detect(self, value: Any) -> list[Detection]:
         """Return every sensitive fragment found in a leaf value."""
 
+    def is_masked(self, value: str) -> bool:
+        """Return whether the matched source already contains masking."""
+        return "*" in value
+
 
 class RegexDetector(Detector):
     pattern: ClassVar[re.Pattern[str]]
@@ -29,6 +34,6 @@ class RegexDetector(Detector):
         if not isinstance(value, str):
             return []
         return [
-            Detection(self.detected_type, match.group(0))
+            Detection(self.detected_type, match.group(0), self.is_masked(match.group(0)))
             for match in self.pattern.finditer(value)
         ]

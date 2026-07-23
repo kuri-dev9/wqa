@@ -9,6 +9,7 @@ from detector.credential_detector import PasswordDetector, UserIdDetector
 from detector.email_detector import EmailDetector
 from detector.identity_detector import BusinessNumberDetector, ResidentNumberDetector
 from detector.network_detector import IpAddressDetector
+from detector.name_detector import NameDetector
 from detector.phone_detector import MobilePhoneDetector, PhoneDetector
 from detector.token_detector import (
     AccessTokenDetector,
@@ -31,6 +32,7 @@ class DetectorRegistry:
                 PhoneDetector(),
                 ResidentNumberDetector(),
                 BusinessNumberDetector(),
+                NameDetector(),
                 IpAddressDetector(),
                 JwtDetector(),
                 AccessTokenDetector(),

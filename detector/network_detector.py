@@ -25,5 +25,5 @@ class IpAddressDetector(Detector):
                 ipaddress.ip_address(candidate)
             except ValueError:
                 continue
-            results.append(Detection(self.detected_type, candidate))
+            results.append(Detection(self.detected_type, candidate, self.is_masked(candidate)))
         return results

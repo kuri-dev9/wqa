@@ -1,5 +1,28 @@
 {
-  "_comment": "STEP 10에서 Detector 규칙을 이 파일로 이전합니다.",
-  "version": 1,
-  "rules": []
+  "version": 2,
+  "rules": [
+    {"type": "EMAIL", "enabled": true, "show_in_report": true},
+    {"type": "MOBILE_PHONE", "enabled": true, "show_in_report": true},
+    {"type": "PHONE", "enabled": true, "show_in_report": true},
+    {"type": "RESIDENT_NUMBER", "enabled": true, "show_in_report": true},
+    {"type": "BUSINESS_NUMBER", "enabled": true, "show_in_report": true},
+    {"type": "NAME_CANDIDATE", "enabled": true, "show_in_report": true},
+    {"type": "USER_ID_CANDIDATE", "enabled": true, "show_in_report": true},
+    {"type": "JWT", "enabled": true, "show_in_report": true},
+    {"type": "ACCESS_TOKEN", "enabled": true, "show_in_report": true},
+    {"type": "API_KEY", "enabled": true, "show_in_report": true},
+    {"type": "PASSWORD_CANDIDATE", "enabled": false, "show_in_report": false},
+    {"type": "IP_ADDRESS", "enabled": true, "show_in_report": true},
+    {"type": "SESSION_ID", "enabled": true, "show_in_report": true}
+  ],
+  "modes": {
+    "PRIVACY": [
+      "EMAIL", "MOBILE_PHONE", "PHONE", "RESIDENT_NUMBER",
+      "BUSINESS_NUMBER", "NAME_CANDIDATE", "USER_ID_CANDIDATE"
+    ],
+    "SECURITY": [
+      "JWT", "ACCESS_TOKEN", "API_KEY", "PASSWORD_CANDIDATE",
+      "IP_ADDRESS", "SESSION_ID"
+    ]
+  }
 }
