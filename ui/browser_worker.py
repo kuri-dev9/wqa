@@ -7,12 +7,14 @@ import asyncio
 from PySide6.QtCore import QObject, Signal, Slot
 
 from browser.playwright_browser import PlaywrightBrowser
+from browser.errors import classify_browser_error
 from detector.registry import DetectorRegistry
 from models.settings import AppSettings
 from parser.json_parser import JsonLeafParser
 from services.analysis_service import AnalysisService
 from services.api_logger import ApiLogger
 from services.rule_engine import RuleEngine
+from utils.masking import protect_text
 
 
 class BrowserWorker(QObject):
@@ -42,7 +44,9 @@ class BrowserWorker(QObject):
             )
             asyncio.run(self.browser.run(self.start_url))
         except Exception as exc:
-            self.failed.emit(str(exc))
+            message = classify_browser_error(exc)
+            registry = DetectorRegistry.default()
+            self.failed.emit(protect_text(message, registry.detect(message)))
         finally:
             self.finished.emit()
 

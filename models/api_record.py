@@ -21,6 +21,7 @@ class ApiRecord:
     body_skipped: bool = False
     detected_count: int = 0
     screenshot_path: str = ""
+    page_url: str = ""
 
     @classmethod
     def create(cls, **values: Any) -> "ApiRecord":

@@ -1,6 +1,7 @@
 .venv/
 .env
 .env.*
+config.user.json
 .tmpdeps/
 .pw-browsers/
 __pycache__/
@@ -18,6 +19,7 @@ Desktop.ini
 
 browser-data/
 *.log
+logs/
 capture/*.png
 output/excel/*
 !output/excel/.gitkeep

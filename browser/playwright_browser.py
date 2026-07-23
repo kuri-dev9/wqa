@@ -12,6 +12,7 @@ from typing import Any
 import orjson
 from playwright.async_api import Browser, Page, Playwright, Request, Response, async_playwright
 
+from browser.errors import NavigationError
 from models.api_record import ApiRecord
 from models.finding import Finding
 from models.settings import AppSettings
@@ -32,14 +33,14 @@ class PlaywrightBrowser:
         api_logger: ApiLogger,
         analyzer: AnalysisService,
         *,
-        headless: bool = False,
+        headless: bool | None = None,
         settings: AppSettings | None = None,
         on_record: Callable[[ApiRecord, list[Finding]], None] | None = None,
     ) -> None:
         self.api_logger = api_logger
         self.analyzer = analyzer
-        self.headless = headless
         self.settings = settings or AppSettings()
+        self.headless = self.settings.headless if headless is None else headless
         self.on_record = on_record
         self.capture_service = CaptureService()
         self._started_at: dict[Request, float] = {}
@@ -52,11 +53,19 @@ class PlaywrightBrowser:
             self._loop = asyncio.get_running_loop()
             self._stop_event = asyncio.Event()
             browser = await self._launch(playwright)
-            context = await browser.new_context()
+            context = await browser.new_context(**self.context_options())
             context.on("page", self._attach_page)
             page = await context.new_page()
             self._attach_page(page)
-            await page.goto(start_url)
+            navigation = await page.goto(
+                self.normalize_url(start_url),
+                wait_until="domcontentloaded",
+                timeout=30_000,
+            )
+            if navigation and navigation.status == 404:
+                raise NavigationError("HTTP 404")
+            if navigation and navigation.status >= 500:
+                raise NavigationError("HTTP 500")
             LOG.info("Chromium started. Log in and use the site normally.")
             await self._wait_until_closed(browser)
             if browser.is_connected():
@@ -65,6 +74,15 @@ class PlaywrightBrowser:
 
     async def _launch(self, playwright: Playwright) -> Browser:
         return await playwright.chromium.launch(headless=self.headless)
+
+    def context_options(self) -> dict[str, object]:
+        return {
+            "ignore_https_errors": self.settings.ignore_https_errors,
+            "viewport": {
+                "width": self.settings.viewport_width,
+                "height": self.settings.viewport_height,
+            },
+        }
 
     def _attach_page(self, page: Page) -> None:
         page.on("request", self._on_request)
@@ -97,7 +115,19 @@ class PlaywrightBrowser:
             try:
                 body_bytes = await response.body()
             except Exception as exc:
-                LOG.warning("%s %s - response body read failed: %s", request.method, response.url, exc)
+                safe_url = protect_text(
+                    response.url, self.analyzer.detectors.detect(response.url)
+                )
+                error_text = str(exc)
+                safe_error = protect_text(
+                    error_text, self.analyzer.detectors.detect(error_text)
+                )
+                LOG.warning(
+                    "%s %s - response body read failed: %s",
+                    request.method,
+                    safe_url,
+                    safe_error,
+                )
                 return
             body_skipped = len(body_bytes) > self.settings.max_response_body_bytes
 
@@ -118,6 +148,7 @@ class PlaywrightBrowser:
             response_size=declared_size or len(body_bytes),
             request_headers=request_headers,
             body_skipped=body_skipped,
+            page_url=self._page_url(request),
         )
         await self.api_logger.add(record)
         findings = self._visible_findings(self.analyzer.analyze(record))
@@ -149,6 +180,22 @@ class PlaywrightBrowser:
             return max(0, int(headers.get("content-length", "0")))
         except ValueError:
             return 0
+
+    @staticmethod
+    def _page_url(request: Request) -> str:
+        try:
+            return request.frame.page.url
+        except Exception:
+            return ""
+
+    @staticmethod
+    def normalize_url(url: str) -> str:
+        target = url.strip()
+        if not target:
+            return "about:blank"
+        if target == "about:blank" or "://" in target:
+            return target
+        return f"https://{target}"
 
     def _log_record(self, record: ApiRecord, findings: list[Finding]) -> None:
         LOG.info(

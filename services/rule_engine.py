@@ -32,3 +32,6 @@ class RuleEngine:
     def set_show_in_report(self, detected_type: str, visible: bool) -> None:
         if detected_type in self.rules:
             self.rules[detected_type]["show_in_report"] = visible
+
+    def types_for_mode(self, mode: str) -> set[str]:
+        return set(self.modes.get(mode.upper(), []))

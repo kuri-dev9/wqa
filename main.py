@@ -23,11 +23,14 @@ async def run_cli(url: str, headless: bool) -> None:
     from parser.json_parser import JsonLeafParser
     from services.analysis_service import AnalysisService
     from services.api_logger import ApiLogger
+    from services.config_service import ConfigService
 
-    settings = AppSettings()
+    settings = ConfigService().load()
+    if headless:
+        settings.headless = True
     logger = ApiLogger(settings.max_api_records)
     analyzer = AnalysisService(JsonLeafParser(), DetectorRegistry.default(), settings=settings)
-    await PlaywrightBrowser(logger, analyzer, headless=headless, settings=settings).run(url)
+    await PlaywrightBrowser(logger, analyzer, settings=settings).run(url)
 
 
 def run_gui() -> int:
@@ -43,7 +46,9 @@ def run_gui() -> int:
 
 def main() -> None:
     args = build_parser().parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    from services.logging_service import configure_logging
+
+    configure_logging()
     if args.cli or args.headless:
         try:
             asyncio.run(run_cli(args.url, args.headless))

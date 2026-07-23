@@ -1,0 +1,17 @@
+{
+  "browser": {
+    "headless": false,
+    "ignore_https_errors": true,
+    "viewport_width": 1600,
+    "viewport_height": 900
+  },
+  "capture": {
+    "response_max_size_mb": 1,
+    "max_api_records": 1000
+  },
+  "modes": {
+    "privacy_enabled": true,
+    "security_enabled": true
+  },
+  "last_url": "about:blank"
+}

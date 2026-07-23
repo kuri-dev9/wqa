@@ -1,25 +1,17 @@
 # WQA (Web QA)
 
-WQA는 사용자가 Chromium을 직접 조작하는 동안 발생하는 Fetch/XHR 응답을
-실시간 수집하고, JSON 응답에서 개인정보 또는 보안정보 노출 후보를 찾는
-Windows용 QA 도구입니다.
+WQA는 Chromium을 직접 조작하는 동안 발생하는 Fetch/XHR 응답을 수집하고,
+JSON 응답에서 개인정보와 보안정보 노출 후보를 찾는 Windows용 QA 도구입니다.
+검출 원문은 메모리 내부에서만 사용하며 Console, GUI, Excel, CSV, Log에는
+보호된 값만 출력합니다.
 
-현재 버전에는 STEP 1~4의 수집·파싱·검출 기능과 함께 GUI, 마스킹 보호,
-메모리 제한, Excel 내보내기, Screenshot, Rule Engine 및 QA Mode가 구현되어
-있습니다.
-
-## 개발 환경
+## 환경
 
 - Windows 11
 - Python 3.13.9
-- Playwright
-- PySide6
-- openpyxl
-- orjson
+- Playwright, PySide6, openpyxl, orjson
 
 ## 설치
-
-PowerShell에서 다음 명령을 실행합니다.
 
 ```powershell
 cd D:\mobigen\51.source\92.local\wqa
@@ -30,74 +22,111 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-Python 버전 확인:
-
-```powershell
-python --version
-# Python 3.13.9
-```
-
 ## 실행
 
-GUI 실행:
+GUI:
 
 ```powershell
 python main.py
 ```
 
-기본 시작 페이지를 GUI의 URL 입력란에 입력한 뒤 `Start`를 누릅니다. 열린
-Chromium에서 직접 로그인하고 평소처럼 사이트를 사용하면 됩니다.
-
-기존 Console 모드도 사용할 수 있습니다.
+Console:
 
 ```powershell
 python main.py --cli --url "https://example.com"
 python main.py --headless --url "https://example.com"
 ```
 
+GUI에서 URL을 입력하고 `Start`를 누르면 Chromium이 실행된 뒤 해당 URL로
+자동 이동합니다. 스킴을 생략하면 `https://`를 자동 적용합니다. 마지막 URL은
+`config.user.json`에 저장되어 다음 실행 시 자동 표시됩니다.
+
 ## GUI
 
-상단 도구 모음:
+상단:
 
-- `Start`: Chromium을 별도 작업 스레드에서 시작
-- `Stop`: 수집 중단 및 브라우저 종료
-- `Export Excel`: 현재 검출 결과를 `.xlsx`로 저장
-- `Clear`: GUI에 표시된 API와 검출 결과 초기화
-- `Mode`: Privacy 또는 Security 검사 선택
-- `Include masked`: 이미 마스킹된 값도 목록과 Excel에 포함
-- `Password candidate`: 기본 비활성화된 Password 후보 검사 활성화
+- `Start`, `Stop`: Browser 수집 시작/중단
+- `Export Excel`, `Export CSV`: 결과 내보내기
+- `Clear`: 수집 결과 초기화
+- `Mode`: Privacy 또는 Security 분석 모드
+- `Include masked`: 이미 마스킹된 결과 포함
+- `Password candidate`: 기본 비활성 Password 후보 활성화
+- URL 입력
 
-왼쪽 위 API 목록에는 Method, Status, URL, Elapsed, Detected Count가 표시되고,
-왼쪽 아래에는 Timestamp, Type, Masked, API, Field Path가 표시됩니다.
+상태 표시줄은 `Idle`, `Running`, `Stopped` 상태와 총 API/검출 건수를
+표시합니다. Running 중에는 Start가 비활성화되고 Stop이 활성화됩니다.
 
-API를 선택하면 오른쪽에서 다음 상세 정보를 확인할 수 있습니다.
+### API Filter와 검색
+
+Filter:
+
+- `All`: 모든 API
+- `Privacy`: Privacy 유형이 검출된 API
+- `Security`: Security 유형이 검출된 API
+- `Current Page`: 가장 최근 페이지에서 발생한 API
+- `Only Unmasked`: 미마스킹 검출이 있는 API
+
+Search Box는 보호된 API URL, Field Path, Displayed Value를 통합 검색합니다.
+
+### API Detail
+
+API를 선택하면 오른쪽 패널에서 다음 정보를 확인할 수 있습니다.
 
 - `Request`: Request Header
-- `Response (JSON)`: 재귀 Tree View. 1MB 초과 본문은 `Skipped` 표시
-- `Detected`: 해당 API의 검출 유형, 마스킹 상태, 보호된 표시값, Field Path
+- `Response (JSON)`: 재귀 JSON Tree
+- `Detected`: 검출 유형, 마스킹 상태, 보호된 값, Field Path
 
-하단 Status Bar에는 총 API 수와 검출 건수가 표시됩니다.
+아래 개인정보 목록에서 검출 결과를 선택하면 해당 API가 선택되고 Response
+Tree의 Field Path로 자동 이동하여 노란색으로 Highlight합니다.
 
-## 출력 보호와 마스킹
+## Settings
 
-원문 검출값은 분석 중 메모리에서만 사용합니다. Console, GUI, Excel에는
-자동 보호된 `Displayed Value`만 출력합니다.
+메뉴의 `Settings > Settings`에서 다음 항목을 변경하고 저장할 수 있습니다.
 
-예:
+- Ignore HTTPS Errors
+- Headless Browser
+- Response Size Limit
+- Max API Records
+- Privacy Mode 활성 여부
+- Security Mode 활성 여부
 
-- `qa@example.com` → `qa***@example.com`
-- `010-1234-5678` → `010-****-5678`
-- 주민등록번호, 토큰, API Key, Session ID도 유형별 보호 형식 적용
+기본값은 [config.json](config.json)에 있으며 사용자 변경값과 최근 URL은
+Git에서 제외되는 `config.user.json`에 저장됩니다.
 
-기본 목록과 Excel에는 `Masked=False`, 즉 응답에서 마스킹되지 않은 검출만
-포함합니다. `Include masked`를 선택하면 마스킹된 후보도 포함할 수 있습니다.
+```json
+{
+  "browser": {
+    "headless": false,
+    "ignore_https_errors": true,
+    "viewport_width": 1600,
+    "viewport_height": 900
+  },
+  "capture": {
+    "response_max_size_mb": 1,
+    "max_api_records": 1000
+  }
+}
+```
 
-`ab***@gmail.com`, `010****1234`처럼 이미 부분 마스킹되어 완전한 형식을
-충족하지 않는 값은 Email 또는 Phone 확정 검출로 분류하지 않습니다.
+`ignore_https_errors` 기본값은 `true`이므로 사내 Self-Signed Certificate
+사이트도 접속할 수 있습니다. Response Body 기본 제한은 1MB이며 초과 본문은
+저장·분석하지 않고 `Skipped`로 표시합니다. API는 기본 1,000건을 FIFO로
+보관합니다.
 
-## QA Mode
+## 오류 안내
 
-### Privacy Mode
+Browser 시작 및 이동 오류를 다음과 같이 구분해 안내합니다.
+
+- DNS lookup 실패
+- HTTPS 인증서 오류
+- Connection refused
+- Timeout
+- HTTP 404
+- HTTP 500
+
+## QA Mode와 Rule Engine
+
+Privacy Mode:
 
 - Email
 - Phone / Mobile Phone
@@ -106,7 +135,7 @@ API를 선택하면 오른쪽에서 다음 상세 정보를 확인할 수 있습
 - Name Candidate
 - User ID Candidate
 
-### Security Mode
+Security Mode:
 
 - JWT
 - Access Token
@@ -115,48 +144,42 @@ API를 선택하면 오른쪽에서 다음 상세 정보를 확인할 수 있습
 - IP Address
 - Session ID
 
-`USER_ID_CANDIDATE`, `PASSWORD_CANDIDATE`, `NAME_CANDIDATE`는 값 패턴만으로
-개인정보임을 확정할 수 없는 휴리스틱 결과입니다. `server01`, `router001`,
-`version2026` 등은 User ID 확정값이 아니라 Candidate로만 취급됩니다.
+[rules/rules.json](rules/rules.json)의 `enabled`, `show_in_report`,
+`modes.PRIVACY`, `modes.SECURITY`로 Detector 활성 여부와 출력 여부를
+관리합니다. `USER_ID_CANDIDATE`, `PASSWORD_CANDIDATE`,
+`NAME_CANDIDATE`는 확정 개인정보가 아닌 휴리스틱 후보입니다.
 
-## Rule Engine
+## 출력 보호
 
-[rules/rules.json](rules/rules.json)에서 Detector 활성 여부와 Report 표시 여부,
-Mode별 검사 유형을 관리합니다.
+예:
 
-```json
-{
-  "type": "PASSWORD_CANDIDATE",
-  "enabled": false,
-  "show_in_report": false
-}
-```
+- `qa@example.com` → `qa***@example.com`
+- `010-1234-5678` → `010-****-5678`
+- Token/API Key/Session ID → 앞뒤 일부만 표시
 
-- `enabled`: Detector 결과 사용 여부
-- `show_in_report`: GUI/Console/Excel 기본 출력 여부
-- `modes.PRIVACY`, `modes.SECURITY`: Mode별 Detector 목록
+기본 GUI와 Export에는 미마스킹 노출만 포함합니다. Request/Response Tree,
+API URL, Excel Summary에도 동일한 출력 보호를 적용합니다.
 
-규칙 파일을 변경하면 Detector 코드를 수정하지 않고 활성 유형을 조정할 수
-있습니다. GUI의 `Password candidate` 체크는 실행 중 해당 규칙을 임시로
-활성화합니다.
+## Excel 및 CSV
 
-## 메모리 제한
+Excel:
 
-[models/settings.py](models/settings.py)의 기본 설정:
+- `Summary`: 총 API, Privacy/Security 검출 수, 전체 Response Size,
+  평균 Elapsed, API별 검출 건수
+- `Detail`: Timestamp, Method, Status, API, Field Path, Detected Type,
+  Masked, Displayed Value, Elapsed Time, Response Size, Screenshot
 
-- `max_api_records = 1000`: 초과 시 가장 오래된 API부터 FIFO 제거
-- `max_response_body_bytes = 1MB`: 초과 본문은 저장·파싱하지 않고 `Skipped`
-- `include_masked = False`
+CSV는 대용량 처리용 Detail 형식이며 UTF-8 BOM으로 저장됩니다.
 
-## Excel 및 Screenshot
+최초 표시 대상 개인정보가 검출되면 현재 페이지를
+`capture/yyyyMMdd_HHmmss.png`로 한 번 저장하고 Export 결과에 경로를
+기록합니다.
 
-Excel 컬럼:
+## Log와 About
 
-Timestamp, Method, Status, API, Field Path, Detected Type, Masked,
-Displayed Value, Elapsed Time, Response Size, Screenshot
-
-최초 표시 대상 개인정보가 검출되면 현재 페이지를 `capture/yyyyMMdd_HHmmss.png`
-형식으로 한 번 캡처하고 Excel의 Screenshot 컬럼에 기록합니다.
+실행 로그는 `logs/yyyyMMdd.log`에 저장됩니다. 개인정보 검출 원문은 기록하지
+않습니다. `Help > About`에서 WQA Version, Python Version, Playwright
+Version을 확인할 수 있습니다.
 
 ## 테스트
 
@@ -165,22 +188,22 @@ pip install pytest
 python -m pytest -q
 ```
 
-Detector와 Parser는 Playwright 및 GUI와 독립적으로 테스트할 수 있습니다.
-False Positive, Candidate 등급, 마스킹 이메일/전화번호, FIFO 저장 제한,
-Rule/Mode 및 Excel 원문 미출력을 검증합니다.
+Detector False Positive, 마스킹, FIFO, HTTPS Ignore, 설정 Load/Save,
+CSV 원문 보호, Excel Summary 등을 검증합니다.
 
 ## 구조
 
 ```text
 wqa/
-├── browser/       Playwright 수집
+├── browser/       Playwright 및 Browser 오류 분류
 ├── detector/      독립 Detector
 ├── parser/        JSON leaf parser
 ├── models/        API, Finding, 설정 모델
-├── services/      분석, Rule, Excel, Screenshot, API 저장
-├── ui/            PySide6 GUI 및 Browser worker
+├── services/      Config, Rule, Excel, CSV, Log, Screenshot, API 저장
+├── ui/            PySide6 GUI, Settings Dialog, Browser worker
 ├── rules/         JSON Rule Engine 설정
 ├── capture/       Screenshot
-├── output/excel/  Excel 결과
+├── logs/          일별 안전 로그
+├── output/        Excel/CSV 결과
 └── tests/         단위 테스트
 ```
